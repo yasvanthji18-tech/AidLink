@@ -27,13 +27,19 @@ export default function CenterNeeds() {
     if (!form.description) { toast.error('Please enter a description'); return; }
     setSaving(true);
     try {
-      const updatedNeeds = [...needs, form];
+      const cleanForm = {
+        type: form.type,
+        description: form.description,
+        quantity: form.quantity,
+        urgency: form.urgency
+      };
+      const updatedNeeds = [...needs, cleanForm];
       const res = await api.patch(`/centers/${centerId}`, { needs: updatedNeeds });
       setNeeds(res.data.needs);
       setForm({ type: 'food', description: '', quantity: '', urgency: 'medium' });
       toast.success('Need added!');
     } catch (err) {
-      toast.error('Failed to update needs');
+      toast.error(err.response?.data?.message || 'Failed to update needs');
     } finally {
       setSaving(false);
     }

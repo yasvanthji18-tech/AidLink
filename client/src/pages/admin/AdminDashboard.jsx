@@ -1,15 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
 import api from '../../services/api';
-import { Users, Package, Building2, DollarSign, TrendingUp } from 'lucide-react';
+import { Users, Package, Building2, DollarSign, Trophy, ShieldCheck } from 'lucide-react';
+import { VerificationBadge, PointsBadge } from '../../components/Badges';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
+  const [leaders, setLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState(false);
+
+  const fetchStats = () => {
+    setLoading(true);
+    Promise.all([
+      api.get('/admin/dashboard'),
+      api.get('/admin/leaderboard'),
+    ])
+      .then(([s, l]) => { setStats(s.data); setLeaders(l.data); })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    api.get('/admin/dashboard').then(r => { setStats(r.data); setLoading(false); }).catch(() => setLoading(false));
+    fetchStats();
   }, []);
+
+  const handleToggleTestMode = async () => {
+    try {
+      setToggling(true);
+      await api.patch('/admin/settings/toggle-test-mode');
+      fetchStats();
+    } catch (err) {
+      alert('Failed to toggle test mode: ' + err.message);
+    } finally {
+      setToggling(false);
+    }
+  };
 
   if (loading) return <Layout title="Admin Dashboard"><div className="loading-spinner"><div className="spinner" /></div></Layout>;
   if (!stats) return <Layout title="Admin Dashboard"><div className="alert alert-error">Failed to load stats</div></Layout>;
@@ -22,8 +47,39 @@ export default function AdminDashboard() {
     <Layout title="Admin Dashboard">
       <div className="page-header">
         <h1 className="page-title">Platform Overview</h1>
-        <p className="page-subtitle">Monitor and manage the entire AidLink platform</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className={`badge ${stats.testMode ? 'badge-warning' : 'badge-success'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', fontWeight: 600 }}>
+            {stats.testMode ? '⚠️ TEST MODE ACTIVE' : '✅ LIVE MODE'}
+          </div>
+          <button 
+            className="btn btn-outline" 
+            onClick={async () => {
+              try {
+                const res = await api.get('/donations/trigger-fallbacks');
+                alert(`Processed ${res.count} fallbacks!`);
+                fetchStats();
+              } catch (err) { alert('Failed to trigger fallbacks'); }
+            }}
+            disabled={toggling}
+            style={{ minWidth: '160px', marginLeft: '0.5rem' }}
+          >
+            Process Fallbacks
+          </button>
+          <button 
+            className={`btn ${stats.testMode ? 'btn-outline' : 'btn-primary'}`} 
+            onClick={handleToggleTestMode}
+            disabled={toggling}
+            style={{ minWidth: '160px', marginLeft: '0.5rem' }}
+          >
+            {toggling ? 'Updating...' : stats.testMode ? 'Switch to Live' : 'Enable Test Mode'}
+          </button>
+        </div>
       </div>
+      <p className="page-subtitle" style={{ marginBottom: '2rem' }}>
+        {stats.testMode 
+          ? 'System is currently restricted to 3 selected service centers for testing.' 
+          : 'Monitor and manage the entire AidLink platform.'}
+      </p>
 
       {/* Top stats */}
       <div className="grid grid-4" style={{ marginBottom: '2rem' }}>
@@ -120,10 +176,10 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-3">
+      <div className="grid grid-3" style={{ marginBottom: '2rem' }}>
         {[
           { to: '/admin/users', label: 'Manage Users', icon: Users, count: stats.totalUsers, color: 'var(--primary)' },
-          { to: '/admin/centers', label: 'Verify Centers', icon: Building2, count: stats.totalCenters - stats.verifiedCenters + ' pending', color: 'var(--accent)' },
+          { to: '/admin/centers', label: 'Verify Centers', icon: Building2, count: `${stats.totalCenters - stats.verifiedCenters} pending`, color: 'var(--accent)' },
           { to: '/admin/donations', label: 'Monitor Donations', icon: Package, count: stats.totalDonations, color: 'var(--secondary)' },
         ].map(l => {
           const Icon = l.icon;
@@ -143,6 +199,125 @@ export default function AdminDashboard() {
             </a>
           );
         })}
+      </div>
+
+      {/* Volunteer Leaderboard & System Summary */}
+      <div className="grid grid-2" style={{ marginBottom: '2rem' }}>
+        {/* Volunteer Leaderboard */}
+        {leaders.length > 0 && (
+          <div className="card">
+            <div className="card-header">
+              <div className="card-title"><Trophy size={16} style={{ marginRight: '0.4rem', display: 'inline' }} />Top Volunteers</div>
+              <a href="/admin/users" style={{ textDecoration: 'none' }} className="btn btn-outline btn-sm">View All Users</a>
+            </div>
+            {leaders.map((l, i) => {
+              const rankCls = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+              return (
+                <div key={l._id} className="leaderboard-item">
+                  <div className={`leaderboard-rank ${rankCls}`}>{i + 1}</div>
+                  <div className="leaderboard-name">{l.name}</div>
+                  <VerificationBadge status={l.verificationStatus || 'unverified'} />
+                  <PointsBadge points={l.volunteerPoints || 0} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* System Summary Report */}
+        <div className="card">
+          <div className="card-header">
+            <div className="card-title"><ShieldCheck size={16} style={{ marginRight: '0.4rem', display: 'inline' }} />System Summary Report</div>
+          </div>
+          <div className="report-grid">
+            <div className="report-item">
+              <span className="report-label">Total Service Centers:</span>
+              <span className="report-value">{stats.totalCenters}</span>
+            </div>
+            <div className="report-item">
+              <span className="report-label">Active Test Centers:</span>
+              <span className="report-value" style={{ color: stats.testMode ? 'var(--warning)' : 'inherit' }}>
+                {stats.testMode ? stats.testCenters?.length : 'N/A'}
+              </span>
+            </div>
+            <div className="report-item">
+              <span className="report-label">Total Volunteers:</span>
+              <span className="report-value">{stats.volunteers?.length || 0}</span>
+            </div>
+            <div className="report-item">
+              <span className="report-label">Total Donations:</span>
+              <span className="report-value">{stats.totalDonations}</span>
+            </div>
+            <div className="report-item">
+              <span className="report-label">Completed Donations:</span>
+              <span className="report-value" style={{ color: 'var(--secondary)' }}>{statusMap['received'] || 0}</span>
+            </div>
+            <div className="report-item">
+              <span className="report-label">Pending Donations:</span>
+              <span className="report-value" style={{ color: 'var(--accent)' }}>{stats.totalDonations - (statusMap['received'] || 0) - (statusMap['cancelled'] || 0)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Test Centers Section */}
+      {stats.testMode && stats.testCenters?.length > 0 && (
+        <div className="card" style={{ marginBottom: '2rem', border: '1px solid var(--warning-light)' }}>
+          <div className="card-header">
+            <div className="card-title">Active Test Service Centers</div>
+            <div className="badge badge-warning">LIMIT: 3 CENTERS</div>
+          </div>
+          <div className="grid grid-3">
+            {stats.testCenters.map(center => (
+              <div key={center._id} className="test-center-card">
+                <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: 'var(--primary)' }}>{center.name}</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>📍 {center.location?.city}, {center.location?.state}</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>📞 {center.contact}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  {center.needs?.map((n, idx) => (
+                    <span key={idx} className="badge badge-sm" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--primary-light)', color: 'var(--primary)', fontSize: '0.7rem' }}>
+                      {n.type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Volunteer Visibility Section */}
+      <div className="card">
+        <div className="card-header">
+          <div className="card-title">Volunteer Availability & Status</div>
+          <div className="badge badge-success">{stats.volunteers?.length || 0} Active</div>
+        </div>
+        <div className="table-responsive">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Volunteer Name</th>
+                <th>Location</th>
+                <th>Rank/Points</th>
+                <th>Active Tasks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.volunteers?.slice(0, 10).map(v => (
+                <tr key={v._id}>
+                  <td><div style={{ fontWeight: 600 }}>{v.name}</div></td>
+                  <td>{v.location?.city || 'Not specified'}</td>
+                  <td><PointsBadge points={v.volunteerPoints || 0} /></td>
+                  <td>
+                    <span className={`badge ${v.taskCount > 0 ? 'badge-primary' : 'badge-outline'}`}>
+                      {v.taskCount || 0} tasks
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </Layout>
   );

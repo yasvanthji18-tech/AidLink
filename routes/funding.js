@@ -9,11 +9,11 @@ router.post('/', protect, authorize('donor'), async (req, res) => {
   try {
     const { serviceCenterId, amount, purpose, message } = req.body;
     if (!serviceCenterId || !amount || !purpose) {
-      return res.status(400).json({ message: 'serviceCenterId, amount, and purpose are required' });
+      return res.status(400).json({ success: false, message: 'serviceCenterId, amount, and purpose are required' });
     }
 
     const center = await ServiceCenter.findById(serviceCenterId);
-    if (!center) return res.status(404).json({ message: 'Service center not found' });
+    if (!center) return res.status(404).json({ success: false, message: 'Service center not found' });
 
     const funding = await Funding.create({
       donorId: req.user._id,
@@ -35,10 +35,12 @@ router.post('/', protect, authorize('donor'), async (req, res) => {
     const populated = await Funding.findById(funding._id)
       .populate('donorId', 'name email')
       .populate('serviceCenterId', 'name type location');
-
-    res.status(201).json(populated);
+    
+    console.log(`[FUNDING] Created: ${funding._id} by ${req.user.name} for ${center.name}`);
+    res.status(201).json({ success: true, data: populated });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    console.error(`[FUNDING] Create Error: ${err.message}`);
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 
@@ -51,9 +53,10 @@ router.get('/', protect, async (req, res) => {
       .populate('donorId', 'name email')
       .populate('serviceCenterId', 'name type')
       .sort({ createdAt: -1 });
-    res.json(records);
+    res.json({ success: true, data: records });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(`[FUNDING] Fetch Error: ${err.message}`);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

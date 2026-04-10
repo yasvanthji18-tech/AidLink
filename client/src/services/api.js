@@ -12,7 +12,13 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // If our backend follows the { success: true, data: ... } pattern, unwrap it
+    if (res.data && res.data.success === true && res.data.data !== undefined) {
+      return { ...res, data: res.data.data };
+    }
+    return res;
+  },
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('aidlink_token');

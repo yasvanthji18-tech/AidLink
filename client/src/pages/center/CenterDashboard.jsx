@@ -24,8 +24,8 @@ export default function CenterDashboard() {
     }).finally(() => setLoading(false));
   }, [user]);
 
-  const pending = donations.filter(d => d.status === 'posted');
-  const received = donations.filter(d => ['delivered', 'received'].includes(d.status));
+  const pending = donations.filter(d => d.centerStatus === 'pending' || d.centerPickupRequested);
+  const received = donations.filter(d => ['received', 'received_by_center'].includes(d.status));
 
   return (
     <Layout title="Service Center Dashboard">

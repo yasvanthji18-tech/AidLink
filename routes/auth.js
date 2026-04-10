@@ -10,11 +10,13 @@ const signToken = (id) =>
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, phone, location, centerName, centerType, centerDescription } = req.body;
+    const { name, email, password, role, phone, location, centerName, centerType, centerDescription, centerPhone } = req.body;
 
     if (!name || !email || !password || !role) {
-      return res.status(400).json({ message: 'Name, email, password, and role are required' });
+      return res.status(400).json({ success: false, message: 'Name, email, password, and role are required' });
     }
+    
+    console.log(`[REGISTER] Attempt for: ${email}`);
 
     const existing = await User.findOne({ email });
     if (existing) return res.status(409).json({ message: 'Email already registered' });
@@ -27,8 +29,17 @@ router.post('/register', async (req, res) => {
         name: centerName || name,
         type: centerType || 'ngo',
         description: centerDescription || '',
-        location: location || { address: 'Not provided' },
-        contact: { email, phone },
+        location: {
+          address: location?.address || 'Not provided',
+          city: location?.city || '',
+          state: location?.state || '',
+          pincode: location?.pincode || '',
+        },
+        contact: {
+          email,
+          phone: centerPhone || phone || '',
+          contactNumber: centerPhone || phone || 'Not provided',
+        },
         managerId: null,
       });
       user.serviceCenterId = center._id;
@@ -40,10 +51,12 @@ router.post('/register', async (req, res) => {
     }
 
     const token = signToken(user._id);
-    res.status(201).json({ token, user });
+    const responsePayload = { success: true, data: { token, user } };
+    console.log(`[REGISTER] Success: ${user.name} - Sample: ${JSON.stringify(responsePayload).substring(0, 100)}...`);
+    res.status(201).json(responsePayload);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
+    console.error(`[REGISTER] Error: ${err.message}`);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -60,9 +73,11 @@ router.post('/login', async (req, res) => {
     }
 
     const token = signToken(user._id);
-    res.json({ token, user });
+    console.log(`[LOGIN] Success: ${user.name}`);
+    res.json({ success: true, data: { token, user } });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(`[LOGIN] Error: ${err.message}`);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

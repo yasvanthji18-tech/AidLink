@@ -17,7 +17,7 @@ export default function Register() {
   const [form, setForm] = useState({
     name: '', email: '', password: '', phone: '',
     address: '', city: '', state: '',
-    centerName: '', centerType: 'ngo', centerDescription: '',
+    centerName: '', centerType: 'ngo', centerDescription: '', centerPhone: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,6 +41,7 @@ export default function Register() {
           centerName: form.centerName || form.name,
           centerType: form.centerType,
           centerDescription: form.centerDescription,
+          centerPhone: form.centerPhone || form.phone, // Map center phone
         }),
       };
       const user = await register(payload);
@@ -129,6 +130,10 @@ export default function Register() {
                   <label className="form-label">Phone (Optional)</label>
                   <input id="reg-phone" type="tel" className="form-control" placeholder="+91 98765 43210" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
                 </div>
+                <div className="form-group">
+                  <label className="form-label">Street Address *</label>
+                  <input id="reg-address" type="text" className="form-control" placeholder="House no, Street, Area" value={form.address} onChange={e => setForm({...form, address: e.target.value})} required />
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div className="form-group">
                     <label className="form-label">City</label>
@@ -157,6 +162,11 @@ export default function Register() {
                         <option value="food_bank">Food Bank</option>
                         <option value="other">Other</option>
                       </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Center Contact Number</label>
+                      <input id="reg-center-phone" type="tel" className="form-control" placeholder="Office Phone" value={form.centerPhone} onChange={e => setForm({...form, centerPhone: e.target.value})} required={selectedRole === 'service_center'} />
+                      <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>This number will be visible to volunteers for coordination.</p>
                     </div>
                     <div className="form-group">
                       <label className="form-label">About Your Center</label>

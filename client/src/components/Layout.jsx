@@ -30,6 +30,7 @@ const navConfig = {
     { label: 'Users', to: '/admin/users', icon: Users },
     { label: 'Service Centers', to: '/admin/centers', icon: Building2 },
     { label: 'Donations', to: '/admin/donations', icon: Package },
+    { label: 'System Report', to: '/admin/report', icon: ClipboardList },
   ],
 };
 

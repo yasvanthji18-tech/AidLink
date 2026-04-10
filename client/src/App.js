@@ -23,6 +23,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminCenters from './pages/admin/AdminCenters';
 import AdminDonations from './pages/admin/AdminDonations';
+import AdminSystemReport from './pages/admin/AdminSystemReport';
 
 function PrivateRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -75,6 +76,7 @@ function App() {
           <Route path="/admin/users" element={<PrivateRoute roles={['admin']}><AdminUsers /></PrivateRoute>} />
           <Route path="/admin/centers" element={<PrivateRoute roles={['admin']}><AdminCenters /></PrivateRoute>} />
           <Route path="/admin/donations" element={<PrivateRoute roles={['admin']}><AdminDonations /></PrivateRoute>} />
+          <Route path="/admin/report" element={<PrivateRoute roles={['admin']}><AdminSystemReport /></PrivateRoute>} />
 
           {/* Shared */}
           <Route path="/donations/:id" element={<PrivateRoute><DonationDetail /></PrivateRoute>} />

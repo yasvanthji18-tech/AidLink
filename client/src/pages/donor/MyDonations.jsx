@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import DonationCard from '../../components/DonationCard';
 import api from '../../services/api';
-import { Search, Filter } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 export default function MyDonations() {
   const [donations, setDonations] = useState([]);
@@ -27,7 +27,7 @@ export default function MyDonations() {
     const matchSearch = d.title.toLowerCase().includes(search.toLowerCase()) || d.type.includes(search);
     const matchTab = activeTab === 'all' ? true
       : activeTab === 'active' ? ['posted', 'accepted', 'collected'].includes(d.status)
-      : activeTab === 'delivered' ? ['delivered', 'received'].includes(d.status)
+      : activeTab === 'delivered' ? ['delivered', 'delivered_to_center', 'received', 'received_by_center'].includes(d.status)
       : d.status === 'expired';
     return matchSearch && matchTab;
   });
@@ -53,7 +53,7 @@ export default function MyDonations() {
             <span style={{ marginLeft: '0.4rem', fontSize: '0.7rem', background: 'var(--bg-elevated)', padding: '0.1rem 0.4rem', borderRadius: '10px' }}>
               {t.key === 'all' ? donations.length
                 : t.key === 'active' ? donations.filter(d => ['posted','accepted','collected'].includes(d.status)).length
-                : t.key === 'delivered' ? donations.filter(d => ['delivered','received'].includes(d.status)).length
+                : t.key === 'delivered' ? donations.filter(d => ['delivered','delivered_to_center','received','received_by_center'].includes(d.status)).length
                 : donations.filter(d => d.status === 'expired').length}
             </span>
           </button>

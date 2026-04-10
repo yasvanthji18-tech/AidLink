@@ -1,28 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import { PlusCircle, Info } from 'lucide-react';
-
-const deliveryModes = [
-  { value: 'volunteer_pickup', label: '🚚 Volunteer Pickup', desc: 'A volunteer will come to your location' },
-  { value: 'self_drop', label: '🏠 Self Drop', desc: 'You will drop it off at the center' },
-  { value: 'service_center_pickup', label: '🏢 Center Pickup', desc: 'Service center will arrange pickup' },
-];
+import { PlusCircle } from 'lucide-react';
 
 export default function CreateDonation() {
   const navigate = useNavigate();
   const [type, setType] = useState('food');
   const [loading, setLoading] = useState(false);
+  const [centers, setCenters] = useState([]);
+  useEffect(() => {
+    api.get('/centers').then(res => setCenters(res.data)).catch(console.error);
+  }, []);
   const [form, setForm] = useState({
     title: '', description: '', quantity: '',
     address: '', city: '', state: '',
-    deliveryMode: 'volunteer_pickup', notes: '',
+    notes: '',
     // food
     foodName: '', expiryTime: '', pickupTime: '',
     // item
     condition: 'good', itemCategory: '',
+    // center selection
+    assignedCenterId: '',
   });
 
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -37,7 +37,6 @@ export default function CreateDonation() {
         description: form.description,
         quantity: form.quantity,
         location: { address: form.address, city: form.city, state: form.state },
-        deliveryMode: form.deliveryMode,
         notes: form.notes,
         ...(type === 'food' && {
           foodName: form.foodName,
@@ -48,6 +47,7 @@ export default function CreateDonation() {
           condition: form.condition,
           itemCategory: form.itemCategory,
         }),
+        assignedCenterId: form.assignedCenterId || undefined,
       });
       toast.success('Donation created successfully! 🎉');
       navigate('/donor/my-donations');
@@ -189,26 +189,20 @@ export default function CreateDonation() {
             </div>
           </div>
 
-          {/* Delivery Mode */}
           <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <div className="card-title" style={{ marginBottom: '1rem' }}>Delivery Preference</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {deliveryModes.map(m => (
-                <div key={m.value}
-                  onClick={() => update('deliveryMode', m.value)}
-                  style={{
-                    padding: '0.875rem 1rem', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                    border: `2px solid ${form.deliveryMode === m.value ? 'var(--primary)' : 'var(--border)'}`,
-                    background: form.deliveryMode === m.value ? 'var(--primary-glow)' : 'transparent',
-                    transition: 'var(--transition)', display: 'flex', alignItems: 'center', gap: '0.75rem',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{m.label}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{m.desc}</div>
-                  </div>
-                </div>
-              ))}
+            <div className="card-title" style={{ marginBottom: '1rem' }}>Service Center Assignment</div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Select Preferred Center (Optional)</label>
+              <select className="form-control" value={form.assignedCenterId} onChange={e => update('assignedCenterId', e.target.value)}>
+                <option value="">Auto-assign nearby center</option>
+                {centers.map(c => (
+                  <option key={c._id} value={c._id}>
+                    {c.name} - {c.location?.city || 'Unknown'} 
+                    {c.needs?.length > 0 ? ` (Needs: ${c.needs.join(', ')})` : ''}
+                  </option>
+                ))}
+              </select>
+              <div className="form-hint" style={{ marginTop: '0.5rem' }}>If you leave this as 'Auto-assign', we will automatically find the nearest center that needs your donation.</div>
             </div>
           </div>
 

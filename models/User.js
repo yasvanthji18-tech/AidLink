@@ -20,6 +20,15 @@ const userSchema = new mongoose.Schema(
     },
     isActive: { type: Boolean, default: true },
     serviceCenterId: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceCenter' },
+    // Verification
+    verificationStatus: {
+      type: String,
+      enum: ['unverified', 'verified', 'trusted'],
+      default: 'unverified',
+    },
+    idProof: { type: String }, // placeholder / file reference
+    // Volunteer gamification
+    volunteerPoints: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

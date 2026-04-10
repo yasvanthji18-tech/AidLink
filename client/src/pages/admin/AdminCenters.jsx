@@ -66,7 +66,12 @@ export default function AdminCenters() {
                   <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>{c.name}</div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{c.type?.replace(/_/g, ' ')}</div>
                 </div>
-                <VerifiedBadge verified={c.verified} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem' }}>
+                  <VerifiedBadge verified={c.verified} />
+                  {c.verificationStatus && c.verificationStatus !== 'unverified' && (
+                    <span style={{ fontSize: '0.7rem', color: 'var(--secondary)', fontWeight: 700 }}>✓ {c.verificationStatus}</span>
+                  )}
+                </div>
               </div>
 
               {c.location?.address && (

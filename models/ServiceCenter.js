@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const serviceCenterSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    address: { type: String }, // Added as per requirement
     type: {
       type: String,
       enum: ['old_age_home', 'orphanage', 'ngo', 'shelter', 'food_bank', 'other'],
@@ -19,6 +20,7 @@ const serviceCenterSchema = new mongoose.Schema(
       phone: String,
       email: String,
       website: String,
+      contactNumber: { type: String, required: true }, // Added as per requirement
     },
     needs: [
       {
@@ -32,6 +34,11 @@ const serviceCenterSchema = new mongoose.Schema(
     currentOccupancy: { type: Number },
     verified: { type: Boolean, default: false },
     verifiedAt: { type: Date },
+    verificationStatus: {
+      type: String,
+      enum: ['unverified', 'pending', 'verified'],
+      default: 'unverified',
+    },
     managerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     registrationNumber: { type: String },
     documents: [{ type: String }],

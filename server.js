@@ -29,12 +29,13 @@ app.use('/api/funding', fundingRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => res.json({ status: 'AidLink API is running' }));
+app.get('/api/health', (req, res) => res.json({ success: true, data: { status: 'AidLink API is running' } }));
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
+  const status = err.status || 500;
+  console.error(`[SERVER ERROR] ${status} - ${err.message}\n${err.stack}`);
+  res.status(status).json({ success: false, message: err.message || 'Internal Server Error' });
 });
 
 // Connect to MongoDB and start server

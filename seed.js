@@ -12,6 +12,9 @@ async function seed() {
     User.deleteMany({}),
     ServiceCenter.deleteMany({}),
     Donation.deleteMany({}),
+    require('./models/Task').deleteMany({}),
+    require('./models/Funding').deleteMany({}),
+    require('./models/SystemSetting').deleteMany({}),
   ]);
   console.log('Cleared collections');
 
@@ -23,7 +26,7 @@ async function seed() {
       type: 'ngo',
       description: 'Providing food and shelter to underprivileged communities since 2010.',
       location: { address: '12 Gandhi Road', city: 'Mumbai', state: 'Maharashtra' },
-      contact: { email: 'center@demo.com', phone: '9876543210' },
+      contact: { email: 'center@demo.com', phone: '9876543210', contactNumber: '9876543210' },
       needs: [
         { type: 'food', description: 'Cooked meals for 80 residents', quantity: '80 meals/day', urgency: 'critical' },
         { type: 'item', description: 'Winter clothes for elderly', quantity: '50 sets', urgency: 'high' },
@@ -43,7 +46,7 @@ async function seed() {
       type: 'orphanage',
       description: 'A safe haven for 45 children aged 5-16 years.',
       location: { address: '47 Park Street', city: 'Bengaluru', state: 'Karnataka' },
-      contact: { email: 'rainbow@demo.com', phone: '9123456780' },
+      contact: { email: 'rainbow@demo.com', phone: '9123456780', contactNumber: '9123456780' },
       needs: [
         { type: 'item', description: 'School books and stationery', quantity: '50 sets', urgency: 'high' },
         { type: 'funding', description: 'Monthly operational support', quantity: '25000/month', urgency: 'medium' },
@@ -63,11 +66,12 @@ async function seed() {
       type: 'old_age_home',
       description: 'Caring for 70 senior citizens with dignity.',
       location: { address: '8 Tree Lane', city: 'Chennai', state: 'Tamil Nadu' },
-      contact: { email: 'sunrise@demo.com' },
+      contact: { email: 'sunrise@demo.com', contactNumber: '9333344445' },
       needs: [
         { type: 'food', description: 'Soft diet meals for elderly', quantity: '70 meals/day', urgency: 'high' },
       ],
-      verified: false,
+      verified: true,
+      verifiedAt: new Date(),
       capacity: 80,
       currentOccupancy: 70,
     });
@@ -75,7 +79,7 @@ async function seed() {
   } catch (e) { console.error('center3 failed:', e.message); process.exit(1); }
 
   // Create users
-  let adminUser, donorUser, volunteerUser, centerUser;
+  let adminUser, donorUser, volunteerUser, centerUser, centerUser2, centerUser3;
   try {
     adminUser = await User.create({ name: 'Admin', email: 'admin@demo.com', passwordHash: 'demo1234', role: 'admin', phone: '9000000000', location: { address: 'Admin Office', city: 'Mumbai' }, isActive: true });
     console.log('adminUser created:', adminUser._id);
@@ -96,66 +100,39 @@ async function seed() {
     console.log('centerUser created:', centerUser._id);
   } catch (e) { console.error('centerUser failed:', e.message); process.exit(1); }
 
+  try {
+    centerUser2 = await User.create({ name: 'Rainbow Admin', email: 'rainbow@demo.com', passwordHash: 'demo1234', role: 'service_center', phone: '9123456780', location: { address: '47 Park Street', city: 'Bengaluru' }, serviceCenterId: center2._id, isActive: true });
+    console.log('centerUser2 created:', centerUser2._id);
+  } catch (e) { console.error('centerUser2 failed:', e.message); process.exit(1); }
+
+  try {
+    centerUser3 = await User.create({ name: 'Sunrise Admin', email: 'sunrise@demo.com', passwordHash: 'demo1234', role: 'service_center', phone: '9333344445', location: { address: '8 Tree Lane', city: 'Chennai' }, serviceCenterId: center3._id, isActive: true });
+    console.log('centerUser3 created:', centerUser3._id);
+  } catch (e) { console.error('centerUser3 failed:', e.message); process.exit(1); }
+
   center1.managerId = centerUser._id;
   await center1.save();
   console.log('center1 manager linked');
 
-  // Create donations one by one
-  const expiry = new Date(Date.now() + 4 * 60 * 60 * 1000);
+  center2.managerId = centerUser2._id;
+  await center2.save();
+  console.log('center2 manager linked');
 
-  try {
-    await Donation.create({
-      donorId: donorUser._id, type: 'food', title: 'Fresh Biryani - 30 portions',
-      description: 'Freshly cooked chicken biryani. Serves about 30 people.',
-      foodName: 'Chicken Biryani', quantity: '30 portions',
-      location: { address: '5 Main Street, Bandra', city: 'Mumbai', state: 'Maharashtra' },
-      expiryTime: expiry, pickupTime: new Date(Date.now() + 1 * 60 * 60 * 1000),
-      deliveryMode: 'volunteer_pickup', status: 'posted',
-    });
-    console.log('donation1 created');
-  } catch (e) { console.error('donation1 failed:', e.message); process.exit(1); }
+  center3.managerId = centerUser3._id;
+  await center3.save();
+  console.log('center3 manager linked');
 
-  try {
-    await Donation.create({
-      donorId: donorUser._id, type: 'item', title: 'Winter Clothes Bundle',
-      description: 'Assorted warm clothes in good condition.',
-      quantity: '2 large bags', condition: 'good', itemCategory: 'clothes',
-      location: { address: '5 Main Street, Bandra', city: 'Mumbai', state: 'Maharashtra' },
-      deliveryMode: 'self_drop', assignedCenterId: center1._id, status: 'accepted',
-    });
-    console.log('donation2 created');
-  } catch (e) { console.error('donation2 failed:', e.message); process.exit(1); }
-
-  try {
-    await Donation.create({
-      donorId: donorUser._id, type: 'food', title: 'Dal Rice - 50 plates',
-      description: 'Hot dal rice prepared this morning.',
-      foodName: 'Dal Rice', quantity: '50 plates',
-      location: { address: '10 Baker Street', city: 'Mumbai' },
-      expiryTime: new Date(Date.now() + 6 * 60 * 60 * 1000),
-      deliveryMode: 'volunteer_pickup', status: 'delivered',
-      assignedVolunteerId: volunteerUser._id,
-    });
-    console.log('donation3 created');
-  } catch (e) { console.error('donation3 failed:', e.message); process.exit(1); }
-
-  try {
-    await Donation.create({
-      donorId: donorUser._id, type: 'item', title: 'School Books - Class 5-8',
-      description: 'NCERT textbooks in good condition.',
-      quantity: '30 books', condition: 'good', itemCategory: 'books',
-      location: { address: '5 Main Street', city: 'Mumbai' },
-      deliveryMode: 'volunteer_pickup', assignedCenterId: center2._id, status: 'posted',
-    });
-    console.log('donation4 created');
-  } catch (e) { console.error('donation4 failed:', e.message); process.exit(1); }
+  // No initial donations as per user request for clean state
+  console.log('\n✅ Collections cleared and demo accounts seeded.');
 
   console.log('\n✅ Seed complete!');
   console.log('\nDemo Login Credentials:');
   console.log('  Admin:     admin@demo.com / demo1234');
   console.log('  Donor:     donor@demo.com / demo1234');
   console.log('  Volunteer: volunteer@demo.com / demo1234');
-  console.log('  Center:    center@demo.com / demo1234');
+  console.log('  Center 1 (Hope Foundation):        center@demo.com / demo1234');
+  console.log('  Center 2 (Rainbow Children Home):  rainbow@demo.com / demo1234');
+  console.log('  Center 3 (Sunrise Old Age Home):   sunrise@demo.com / demo1234');
   process.exit(0);
 }
 

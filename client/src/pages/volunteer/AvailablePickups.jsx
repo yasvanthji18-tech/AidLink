@@ -74,7 +74,7 @@ export default function AvailablePickups() {
               key={d._id}
               donation={d}
               actionLabel={accepting === d._id ? 'Accepting...' : '🚚 Accept Pickup'}
-              onAction={d.status === 'posted' ? handleAccept : undefined}
+              onAction={d.status === 'waiting_for_volunteer' ? handleAccept : undefined}
             />
           ))}
         </div>
