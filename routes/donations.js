@@ -16,6 +16,14 @@ router.post('/', protect, authorize('donor'), async (req, res) => {
     const state = (rest.location?.state || '').toLowerCase();
     const demandLevel = cityDemandMap[city] || 'medium';
 
+    if (rest.location) {
+      if (!rest.location.address) {
+        rest.location.address = 'Not Provided';
+      }
+    } else {
+      rest.location = { address: 'Not Provided', city: '', state: '', pincode: '' };
+    }
+
     const donationData = {
       ...rest,
       deliveryMode: 'volunteer_pickup',
@@ -99,6 +107,30 @@ router.get('/', protect, async (req, res) => {
       .sort({ createdAt: -1 });
 
     res.json({ success: true, data: donations });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/donations/trigger-fallbacks - Process donations waiting too long (MOCK for 10 min window)
+router.get('/trigger-fallbacks', protect, authorize('admin'), async (req, res) => {
+  try {
+    const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const donations = await Donation.find({
+      status: 'waiting_for_volunteer',
+      fallbackTriggered: false,
+      waitingForVolunteerSince: { $lte: tenMinsAgo }
+    });
+
+    for (const d of donations) {
+      d.fallbackTriggered = true;
+      d.centerPickupRequested = true;
+      d.escalationStatus = 'no_volunteers';
+      d.statusTimeline.push({ status: 'waiting_for_volunteer', at: new Date(), by: req.user._id, note: 'Volunteer timeout (10m). Notifying center for pickup.' });
+      await d.save();
+    }
+
+    res.json({ success: true, count: donations.length });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -203,30 +235,6 @@ router.patch('/:id/cancel', protect, async (req, res) => {
     res.json({ success: true, data: donation });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
-  }
-});
-
-// GET /api/donations/trigger-fallbacks - Process donations waiting too long (MOCK for 10 min window)
-router.get('/trigger-fallbacks', protect, authorize('admin'), async (req, res) => {
-  try {
-    const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
-    const donations = await Donation.find({
-      status: 'waiting_for_volunteer',
-      fallbackTriggered: false,
-      waitingForVolunteerSince: { $lte: tenMinsAgo }
-    });
-
-    for (const d of donations) {
-      d.fallbackTriggered = true;
-      d.centerPickupRequested = true;
-      d.escalationStatus = 'no_volunteers';
-      d.statusTimeline.push({ status: 'waiting_for_volunteer', at: new Date(), by: req.user._id, note: 'Volunteer timeout (10m). Notifying center for pickup.' });
-      await d.save();
-    }
-
-    res.json({ success: true, count: donations.length });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
   }
 });
 

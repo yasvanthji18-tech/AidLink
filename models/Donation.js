@@ -33,7 +33,7 @@ const donationSchema = new mongoose.Schema(
     },
     assignedVolunteerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     assignedCenterId: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceCenter' },
-    centerStatus: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
+    centerStatus: { type: String, enum: ['pending', 'accepted', 'rejected', 'rejected_by_all'], default: 'pending' },
     deliveredToCenterAt: { type: Date },
     notes: { type: String },
     images: [{ type: String }],
